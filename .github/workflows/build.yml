@@ -66,8 +66,8 @@ jobs:
             os_label: macOS (Apple Silicon)
             is_musl: false
 
-          # macOS Intel
-          - platform: macos-13
+          # macOS Intel (Built on macos-latest)
+          - platform: macos-latest
             target: x86_64-apple-darwin
             name: macos-x86_64
             args: --target x86_64-apple-darwin

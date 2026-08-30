@@ -175,7 +175,7 @@ Automated multi-target release builds are orchestrated via native GitHub Actions
 | **Linux (MUSL)** | `x86_64` | `porto-linux-x86_64-musl` (Static Standalone) | `ubuntu-22.04` |
 | **Windows** | `x86_64` | `porto-windows-x86_64.exe`, NSIS Installer, MSI | `windows-latest` |
 | **macOS (Apple Silicon)** | `aarch64` (M1–M4) | `porto-macos-aarch64`, `.dmg`, `.app.zip` | `macos-latest` |
-| **macOS (Intel)** | `x86_64` | `porto-macos-x86_64`, `.dmg`, `.app.zip` | `macos-13` |
+| **macOS (Intel)** | `x86_64` | `porto-macos-x86_64`, `.dmg`, `.app.zip` | `macos-latest` |
 | **macOS (Universal)** | `universal2` | `porto-macos-universal` (Fat binary via `lipo`) | `macos-latest` |
 
 ---
