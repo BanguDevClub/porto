@@ -1,0 +1,34 @@
+[package]
+name = "porto"
+version = "1.0.0"
+description = "Ultra-lightweight, high-performance cross-platform Docker desktop app by BanguDevClub"
+authors = ["BanguDevClub <dev@bangudev.club>"]
+license = "MIT"
+repository = "https://github.com/BanguDevClub/porto"
+edition = "2021"
+
+[lib]
+name = "porto_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.5", features = [] }
+
+[dependencies]
+tauri = { version = "2.2.4", features = ["tray-icon"] }
+tauri-plugin-shell = "2.2.0"
+bollard = "0.18.1"
+sysinfo = "0.33.1"
+tokio = { version = "1.43.0", features = ["full"] }
+serde = { version = "1.0.218", features = ["derive"] }
+serde_json = "1.0.139"
+futures-util = "0.3.31"
+thiserror = "2.0.11"
+chrono = { version = "0.4.39", features = ["serde"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

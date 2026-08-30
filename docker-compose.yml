@@ -1,0 +1,24 @@
+services:
+  # Porto Builder: Builds cross-platform release desktop binaries & bundles inside Docker
+  porto-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: porto-builder
+    volumes:
+      # Mount workspace into container
+      - .:/app
+      # Export compiled binaries (Linux GNU, Linux MUSL, Windows .exe, bundles) to host
+      - ./dist-artifacts:/app/dist-artifacts
+      # Persistent cargo registry cache to accelerate container rebuilds
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/src-tauri/target
+    environment:
+      - CARGO_TERM_COLOR=always
+      - RUST_BACKTRACE=1
+      - DIST_DIR=/app/dist-artifacts
+    command: ["./build.sh", "--all"]
+
+volumes:
+  cargo-cache:
+  target-cache:

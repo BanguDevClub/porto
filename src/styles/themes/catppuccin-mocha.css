@@ -1,0 +1,57 @@
+/* Porto Design System - Catppuccin Mocha (Rich Dark Theme) */
+[data-theme="catppuccin-mocha"] {
+  --bg-primary: #1e1e2e;       /* base */
+  --bg-secondary: #181825;     /* mantle */
+  --bg-tertiary: #11111b;      /* crust */
+  --bg-surface: #313244;       /* surface0 */
+  --bg-surface-hover: #45475a; /* surface1 */
+  --bg-surface-active: #585b70;/* surface2 */
+  --bg-glass: rgba(30, 30, 46, 0.85);
+  --bg-glass-card: rgba(49, 50, 68, 0.65);
+  --bg-overlay: rgba(17, 17, 27, 0.85);
+
+  --border-color: #45475a;
+  --border-subtle: #313244;
+  --border-focus: #89b4fa;     /* blue */
+
+  --text-primary: #cdd6f4;     /* text */
+  --text-secondary: #a6adc8;   /* subtext0 */
+  --text-muted: #6c7086;       /* overlay0 */
+  --text-inverse: #11111b;
+
+  --accent-primary: #89b4fa;   /* blue */
+  --accent-primary-hover: #89dceb; /* sky */
+  --accent-primary-glow: rgba(137, 180, 250, 0.25);
+
+  --accent-secondary: #cba6f7; /* mauve */
+  --accent-tertiary: #f5c2e7;  /* pink */
+
+  --status-running: #a6e3a1;   /* green */
+  --status-running-bg: rgba(166, 227, 161, 0.12);
+  --status-running-border: rgba(166, 227, 161, 0.3);
+
+  --status-stopped: #f38ba8;   /* red */
+  --status-stopped-bg: rgba(243, 139, 168, 0.12);
+  --status-stopped-border: rgba(243, 139, 168, 0.3);
+
+  --status-paused: #f9e2af;    /* yellow */
+  --status-paused-bg: rgba(249, 226, 175, 0.12);
+  --status-paused-border: rgba(249, 226, 175, 0.3);
+
+  --status-restarting: #fab387;/* peach */
+  --status-restarting-bg: rgba(250, 179, 135, 0.12);
+  --status-restarting-border: rgba(250, 179, 135, 0.3);
+
+  --status-info: #74c7ec;      /* sapphire */
+  --status-info-bg: rgba(116, 199, 236, 0.12);
+  --status-info-border: rgba(116, 199, 236, 0.3);
+
+  --terminal-bg: #11111b;
+  --terminal-text: #cdd6f4;
+  --terminal-cursor: #89b4fa;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(137, 180, 250, 0.2);
+}

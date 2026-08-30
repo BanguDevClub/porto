@@ -1,0 +1,247 @@
+name: Multi-Target Build & Release Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish GitHub Release (for tag triggers or manual release)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Frontend Typecheck & Lint Validation
+  # ----------------------------------------------------------------------------
+  validate-frontend:
+    name: Validate Svelte 5 & TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci || npm install
+
+      - name: Run Svelte & TypeScript Checks
+        run: npm run check
+
+      - name: Build Frontend Bundle
+        run: npm run build
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Containerized Docker Build (Linux GNU, Linux MUSL, Windows MinGW)
+  # ----------------------------------------------------------------------------
+  build-docker-matrix:
+    name: Docker Builder (Linux GNU, MUSL, Windows)
+    needs: validate-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Execute Multi-Target Docker Build Pipeline
+        run: |
+          docker compose up --build
+          sudo chmod -R a+rwX dist-artifacts/
+
+      - name: Upload Docker Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: porto-docker-artifacts
+          path: |
+            dist-artifacts/porto-linux-x86_64-gnu
+            dist-artifacts/porto-linux-x86_64-musl
+            dist-artifacts/porto-windows-x86_64.exe
+            dist-artifacts/bundle/
+            dist-artifacts/SHA256SUMS.txt
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # Job 3: Native macOS Build Matrix (Apple Silicon & Intel)
+  # ----------------------------------------------------------------------------
+  build-macos:
+    name: macOS (${{ matrix.platform }} - ${{ matrix.arch }})
+    needs: validate-frontend
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Apple Silicon
+            os: macos-latest
+            target: aarch64-apple-darwin
+            arch: aarch64
+          - platform: Intel Mac
+            os: macos-13
+            target: x86_64-apple-darwin
+            arch: x86_64
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust Toolchain (${{ matrix.target }})
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust & Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock', 'src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Install NPM Dependencies
+        run: npm ci || npm install
+
+      - name: Compile Frontend Assets
+        run: npm run build
+
+      - name: Build Tauri Desktop Application for macOS
+        run: |
+          npx tauri build --target ${{ matrix.target }}
+
+      - name: Stage macOS Release Artifacts
+        run: |
+          mkdir -p macos-artifacts/
+          
+          # Standalone binary
+          cp "src-tauri/target/${{ matrix.target }}/release/porto" "macos-artifacts/porto-macos-${{ matrix.arch }}"
+          
+          # DMG bundle if generated
+          if [ -d "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" ]; then
+            cp src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg "macos-artifacts/" 2>/dev/null || true
+          fi
+          
+          # Zip .app bundle
+          if [ -d "src-tauri/target/${{ matrix.target }}/release/bundle/macos" ]; then
+            cd "src-tauri/target/${{ matrix.target }}/release/bundle/macos"
+            zip -r "../../../../../macos-artifacts/porto-macos-${{ matrix.arch }}.app.zip" "Porto.app" "porto.app" 2>/dev/null || true
+            cd - > /dev/null
+          fi
+          
+          ls -la macos-artifacts/
+
+      - name: Upload macOS Artifacts (${{ matrix.arch }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: porto-macos-${{ matrix.arch }}
+          path: macos-artifacts/*
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # Job 4: Universal macOS Binary (Lipo universal2)
+  # ----------------------------------------------------------------------------
+  build-macos-universal:
+    name: macOS (Universal2 - arm64 + x86_64)
+    needs: [build-macos]
+    runs-on: macos-latest
+    steps:
+      - name: Download Apple Silicon Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: porto-macos-aarch64
+          path: temp-aarch64
+
+      - name: Download Intel Mac Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: porto-macos-x86_64
+          path: temp-x86_64
+
+      - name: Create Universal Binary
+        run: |
+          mkdir -p macos-universal/
+          lipo -create \
+            temp-aarch64/porto-macos-aarch64 \
+            temp-x86_64/porto-macos-x86_64 \
+            -output macos-universal/porto-macos-universal
+          chmod +x macos-universal/porto-macos-universal
+          file macos-universal/porto-macos-universal
+
+      - name: Upload macOS Universal Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: porto-macos-universal
+          path: macos-universal/porto-macos-universal
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # Job 5: Publish GitHub Release (On Tags or Manual Release Trigger)
+  # ----------------------------------------------------------------------------
+  release:
+    name: Publish GitHub Release
+    needs: [build-docker-matrix, build-macos, build-macos-universal]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Download All Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Consolidate Artifacts & Compute Checksums
+        run: |
+          mkdir -p release-assets/
+          
+          # Linux and Windows binaries & bundles from docker builder
+          find all-artifacts/porto-docker-artifacts -type f -exec cp {} release-assets/ \;
+          
+          # macOS Binaries & Bundles
+          find all-artifacts/porto-macos-aarch64 -type f -exec cp {} release-assets/ \; 2>/dev/null || true
+          find all-artifacts/porto-macos-x86_64 -type f -exec cp {} release-assets/ \; 2>/dev/null || true
+          find all-artifacts/porto-macos-universal -type f -exec cp {} release-assets/ \; 2>/dev/null || true
+          
+          # Re-compute global checksums
+          cd release-assets/
+          rm -f SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
+          cd ..
+          
+          echo "Release assets ready:"
+          ls -la release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          name: Porto ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true

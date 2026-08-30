@@ -1,0 +1,57 @@
+/* Porto Design System - Catppuccin Frappé (Muted Dark Pastel) */
+[data-theme="catppuccin-frappe"] {
+  --bg-primary: #303446;       /* base */
+  --bg-secondary: #292c3c;     /* mantle */
+  --bg-tertiary: #232634;      /* crust */
+  --bg-surface: #414559;       /* surface0 */
+  --bg-surface-hover: #51576d; /* surface1 */
+  --bg-surface-active: #626880;/* surface2 */
+  --bg-glass: rgba(48, 52, 70, 0.85);
+  --bg-glass-card: rgba(65, 69, 89, 0.65);
+  --bg-overlay: rgba(35, 38, 52, 0.85);
+
+  --border-color: #51576d;
+  --border-subtle: #414559;
+  --border-focus: #8caaee;     /* blue */
+
+  --text-primary: #c6d0f5;     /* text */
+  --text-secondary: #a5adce;   /* subtext0 */
+  --text-muted: #737994;       /* overlay0 */
+  --text-inverse: #232634;
+
+  --accent-primary: #8caaee;   /* blue */
+  --accent-primary-hover: #99d1db; /* sky */
+  --accent-primary-glow: rgba(140, 170, 238, 0.25);
+
+  --accent-secondary: #ca9ee6; /* mauve */
+  --accent-tertiary: #f4b8e4;  /* pink */
+
+  --status-running: #a6d189;   /* green */
+  --status-running-bg: rgba(166, 209, 137, 0.12);
+  --status-running-border: rgba(166, 209, 137, 0.3);
+
+  --status-stopped: #e78284;   /* red */
+  --status-stopped-bg: rgba(231, 130, 132, 0.12);
+  --status-stopped-border: rgba(231, 130, 132, 0.3);
+
+  --status-paused: #e5c890;    /* yellow */
+  --status-paused-bg: rgba(229, 200, 144, 0.12);
+  --status-paused-border: rgba(229, 200, 144, 0.3);
+
+  --status-restarting: #ef9f76;/* peach */
+  --status-restarting-bg: rgba(239, 159, 118, 0.12);
+  --status-restarting-border: rgba(239, 159, 118, 0.3);
+
+  --status-info: #85c1dc;      /* sapphire */
+  --status-info-bg: rgba(133, 193, 220, 0.12);
+  --status-info-border: rgba(133, 193, 220, 0.3);
+
+  --terminal-bg: #232634;
+  --terminal-text: #c6d0f5;
+  --terminal-cursor: #8caaee;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 20px rgba(140, 170, 238, 0.2);
+}

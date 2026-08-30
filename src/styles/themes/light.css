@@ -1,0 +1,57 @@
+/* Porto Design System - Modern Slate Light */
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-active: #e2e8f0;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-glass-card: rgba(255, 255, 255, 0.7);
+  --bg-overlay: rgba(15, 23, 42, 0.4);
+
+  --border-color: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-focus: #0284c7;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+
+  --accent-primary: #0284c7;
+  --accent-primary-hover: #0369a1;
+  --accent-primary-glow: rgba(2, 132, 199, 0.15);
+
+  --accent-secondary: #4f46e5;
+  --accent-tertiary: #9333ea;
+
+  --status-running: #16a34a;
+  --status-running-bg: rgba(22, 163, 74, 0.1);
+  --status-running-border: rgba(22, 163, 74, 0.25);
+
+  --status-stopped: #dc2626;
+  --status-stopped-bg: rgba(220, 38, 38, 0.1);
+  --status-stopped-border: rgba(220, 38, 38, 0.25);
+
+  --status-paused: #d97706;
+  --status-paused-bg: rgba(217, 119, 6, 0.1);
+  --status-paused-border: rgba(217, 119, 6, 0.25);
+
+  --status-restarting: #ea580c;
+  --status-restarting-bg: rgba(234, 88, 12, 0.1);
+  --status-restarting-border: rgba(234, 88, 12, 0.25);
+
+  --status-info: #0891b2;
+  --status-info-bg: rgba(8, 145, 178, 0.1);
+  --status-info-border: rgba(8, 145, 178, 0.25);
+
+  --terminal-bg: #0f172a;
+  --terminal-text: #f8fafc;
+  --terminal-cursor: #38bdf8;
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.1);
+}

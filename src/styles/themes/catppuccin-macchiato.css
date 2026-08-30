@@ -1,0 +1,57 @@
+/* Porto Design System - Catppuccin Macchiato (Medium Contrast Dark) */
+[data-theme="catppuccin-macchiato"] {
+  --bg-primary: #24273a;       /* base */
+  --bg-secondary: #1e2030;     /* mantle */
+  --bg-tertiary: #181926;      /* crust */
+  --bg-surface: #363a4f;       /* surface0 */
+  --bg-surface-hover: #494d64; /* surface1 */
+  --bg-surface-active: #5b6078;/* surface2 */
+  --bg-glass: rgba(36, 39, 58, 0.85);
+  --bg-glass-card: rgba(54, 58, 79, 0.65);
+  --bg-overlay: rgba(24, 25, 38, 0.85);
+
+  --border-color: #494d64;
+  --border-subtle: #363a4f;
+  --border-focus: #8aadf4;     /* blue */
+
+  --text-primary: #cad3f5;     /* text */
+  --text-secondary: #a5adcb;   /* subtext0 */
+  --text-muted: #6e738d;       /* overlay0 */
+  --text-inverse: #181926;
+
+  --accent-primary: #8aadf4;   /* blue */
+  --accent-primary-hover: #91d7e3; /* sky */
+  --accent-primary-glow: rgba(138, 173, 244, 0.25);
+
+  --accent-secondary: #c6a0f6; /* mauve */
+  --accent-tertiary: #f5bde6;  /* pink */
+
+  --status-running: #a6da95;   /* green */
+  --status-running-bg: rgba(166, 218, 149, 0.12);
+  --status-running-border: rgba(166, 218, 149, 0.3);
+
+  --status-stopped: #ed8796;   /* red */
+  --status-stopped-bg: rgba(237, 135, 150, 0.12);
+  --status-stopped-border: rgba(237, 135, 150, 0.3);
+
+  --status-paused: #eed49f;    /* yellow */
+  --status-paused-bg: rgba(238, 212, 159, 0.12);
+  --status-paused-border: rgba(238, 212, 159, 0.3);
+
+  --status-restarting: #f5a97f;/* peach */
+  --status-restarting-bg: rgba(245, 169, 127, 0.12);
+  --status-restarting-border: rgba(245, 169, 127, 0.3);
+
+  --status-info: #7dc4e4;      /* sapphire */
+  --status-info-bg: rgba(125, 196, 228, 0.12);
+  --status-info-border: rgba(125, 196, 228, 0.3);
+
+  --terminal-bg: #181926;
+  --terminal-text: #cad3f5;
+  --terminal-cursor: #8aadf4;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.38);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.48);
+  --shadow-glow: 0 0 20px rgba(138, 173, 244, 0.2);
+}
