@@ -167,16 +167,16 @@ dist-artifacts/
 
 ## GitHub Actions CI/CD Matrix
 
-Automated multi-target release builds are orchestrated via [build.yml](.github/workflows/build.yml):
+Automated multi-target release builds are orchestrated via native GitHub Actions runners in [.github/workflows/build.yml](.github/workflows/build.yml):
 
-| Target Platform | Architecture | Binary / Package Output | Runner / Environment |
+| Target Platform | Architecture | Binary / Package Output | Native Runner |
 | :--- | :--- | :--- | :--- |
-| **Linux (GLIBC)** | `x86_64` | `porto-linux-x86_64-gnu`, `.deb`, `.rpm`, `.AppImage` | Containerized (`docker compose`) |
-| **Linux (MUSL)** | `x86_64` | `porto-linux-x86_64-musl` (Static Standalone) | Containerized (`docker compose`) |
-| **Windows** | `x86_64` | `porto-windows-x86_64.exe` (MinGW) | Containerized (`docker compose`) |
-| **macOS (Apple Silicon)** | `aarch64` (M1/M2/M3/M4) | `porto-macos-aarch64`, `.dmg`, `.app.zip` | Native `macos-latest` |
-| **macOS (Intel)** | `x86_64` | `porto-macos-x86_64`, `.dmg`, `.app.zip` | Native `macos-13` |
-| **macOS (Universal)** | `universal2` (arm64 + x86_64) | `porto-macos-universal` (Fat binary via `lipo`) | Native `macos-latest` |
+| **Linux (GLIBC)** | `x86_64` | `porto-linux-x86_64-gnu`, `.deb`, `.rpm`, `.AppImage` | `ubuntu-22.04` |
+| **Linux (MUSL)** | `x86_64` | `porto-linux-x86_64-musl` (Static Standalone) | `ubuntu-22.04` |
+| **Windows** | `x86_64` | `porto-windows-x86_64.exe`, NSIS Installer, MSI | `windows-latest` |
+| **macOS (Apple Silicon)** | `aarch64` (M1–M4) | `porto-macos-aarch64`, `.dmg`, `.app.zip` | `macos-latest` |
+| **macOS (Intel)** | `x86_64` | `porto-macos-x86_64`, `.dmg`, `.app.zip` | `macos-13` |
+| **macOS (Universal)** | `universal2` | `porto-macos-universal` (Fat binary via `lipo`) | `macos-latest` |
 
 ---
 

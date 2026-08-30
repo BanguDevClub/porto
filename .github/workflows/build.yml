@@ -1,4 +1,4 @@
-name: Multi-Target Build & Release Pipeline
+name: Native Multi-Platform Build & Release Matrix
 
 on:
   push:
@@ -13,8 +13,8 @@ on:
       - master
   workflow_dispatch:
     inputs:
-      create_release:
-        description: 'Publish GitHub Release (for tag triggers or manual release)'
+      draft_release:
+        description: 'Create a draft release with compiled artifacts'
         required: false
         type: boolean
         default: false
@@ -24,220 +24,267 @@ permissions:
 
 jobs:
   # ----------------------------------------------------------------------------
-  # Job 1: Frontend Typecheck & Lint Validation
+  # Job 1: Native Cross-Platform Build Matrix (Linux GNU, Linux MUSL, Windows, macOS)
   # ----------------------------------------------------------------------------
-  validate-frontend:
-    name: Validate Svelte 5 & TypeScript
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install NPM Dependencies
-        run: npm ci || npm install
-
-      - name: Run Svelte & TypeScript Checks
-        run: npm run check
-
-      - name: Build Frontend Bundle
-        run: npm run build
-
-  # ----------------------------------------------------------------------------
-  # Job 2: Containerized Docker Build (Linux GNU, Linux MUSL, Windows MinGW)
-  # ----------------------------------------------------------------------------
-  build-docker-matrix:
-    name: Docker Builder (Linux GNU, MUSL, Windows)
-    needs: validate-frontend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Execute Multi-Target Docker Build Pipeline
-        run: |
-          docker compose up --build
-          sudo chmod -R a+rwX dist-artifacts/
-
-      - name: Upload Docker Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: porto-docker-artifacts
-          path: |
-            dist-artifacts/porto-linux-x86_64-gnu
-            dist-artifacts/porto-linux-x86_64-musl
-            dist-artifacts/porto-windows-x86_64.exe
-            dist-artifacts/bundle/
-            dist-artifacts/SHA256SUMS.txt
-          retention-days: 14
-
-  # ----------------------------------------------------------------------------
-  # Job 3: Native macOS Build Matrix (Apple Silicon & Intel)
-  # ----------------------------------------------------------------------------
-  build-macos:
-    name: macOS (${{ matrix.platform }} - ${{ matrix.arch }})
-    needs: validate-frontend
-    runs-on: ${{ matrix.os }}
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: Apple Silicon
-            os: macos-latest
+          # Linux x86_64 GLIBC (Ubuntu 22.04 LTS for wide GLIBC compatibility)
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            name: linux-x86_64-gnu
+            args: --target x86_64-unknown-linux-gnu
+            os_label: Linux (x86_64 GLIBC)
+            is_musl: false
+
+          # Linux x86_64 MUSL (Static Standalone)
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-musl
+            name: linux-x86_64-musl
+            args: --target x86_64-unknown-linux-musl
+            os_label: Linux (x86_64 MUSL)
+            is_musl: true
+
+          # Windows x86_64 (Native MSVC)
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: windows-x86_64
+            args: --target x86_64-pc-windows-msvc
+            os_label: Windows (x86_64)
+            is_musl: false
+
+          # macOS Apple Silicon (M1/M2/M3/M4)
+          - platform: macos-latest
             target: aarch64-apple-darwin
-            arch: aarch64
-          - platform: Intel Mac
-            os: macos-13
+            name: macos-aarch64
+            args: --target aarch64-apple-darwin
+            os_label: macOS (Apple Silicon)
+            is_musl: false
+
+          # macOS Intel
+          - platform: macos-13
             target: x86_64-apple-darwin
-            arch: x86_64
+            name: macos-x86_64
+            args: --target x86_64-apple-darwin
+            os_label: macOS (Intel)
+            is_musl: false
+
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js Runtime (Node 24 LTS)
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
-      - name: Install Rust Toolchain (${{ matrix.target }})
+      - name: Install Rust Stable Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
-      - name: Cache Rust & Cargo Dependencies
-        uses: actions/cache@v4
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock', 'src-tauri/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+          workspaces: './src-tauri -> target'
+
+      # Linux-specific GTK3, WebKit2GTK, MUSL tools and build prerequisites
+      - name: Install Linux System Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            pkg-config \
+            build-essential \
+            curl \
+            wget \
+            file
+          if [ "${{ matrix.is_musl }}" = "true" ]; then
+            sudo apt-get install -y musl-tools musl-dev
+          fi
 
       - name: Install NPM Dependencies
         run: npm ci || npm install
 
+      - name: Run Svelte 5 & TypeScript Diagnostic Checks
+        run: npm run check
+
       - name: Compile Frontend Assets
         run: npm run build
 
-      - name: Build Tauri Desktop Application for macOS
-        run: |
-          npx tauri build --target ${{ matrix.target }}
+      # Build Tauri Desktop Application (or standalone MUSL release)
+      - name: Build Tauri Desktop Application (GLIBC, Windows, macOS)
+        if: matrix.is_musl != true
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Porto v__VERSION__'
+          releaseBody: 'See the attached assets to download Porto for your platform.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
 
-      - name: Stage macOS Release Artifacts
+      # Build Linux MUSL Static Binary
+      - name: Build Linux MUSL Target
+        if: matrix.is_musl == true
+        shell: bash
         run: |
-          mkdir -p macos-artifacts/
-          
-          # Standalone binary
-          cp "src-tauri/target/${{ matrix.target }}/release/porto" "macos-artifacts/porto-macos-${{ matrix.arch }}"
-          
-          # DMG bundle if generated
-          if [ -d "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" ]; then
-            cp src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg "macos-artifacts/" 2>/dev/null || true
-          fi
-          
-          # Zip .app bundle
-          if [ -d "src-tauri/target/${{ matrix.target }}/release/bundle/macos" ]; then
-            cd "src-tauri/target/${{ matrix.target }}/release/bundle/macos"
-            zip -r "../../../../../macos-artifacts/porto-macos-${{ matrix.arch }}.app.zip" "Porto.app" "porto.app" 2>/dev/null || true
-            cd - > /dev/null
-          fi
-          
-          ls -la macos-artifacts/
+          export PKG_CONFIG_ALLOW_CROSS=1
+          export RUSTFLAGS="-C target-feature=-crt-static -C link-arg=-lm"
+          cargo build --release --target x86_64-unknown-linux-musl --manifest-path src-tauri/Cargo.toml
 
-      - name: Upload macOS Artifacts (${{ matrix.arch }})
+      # Stage artifacts for upload (Linux / macOS)
+      - name: Stage Release Artifacts (Linux / macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p staging/
+          
+          # Target release binary
+          if [ -f "src-tauri/target/${{ matrix.target }}/release/porto" ]; then
+            cp "src-tauri/target/${{ matrix.target }}/release/porto" "staging/porto-${{ matrix.name }}"
+          elif [ -f "src-tauri/target/release/porto" ]; then
+            cp "src-tauri/target/release/porto" "staging/porto-${{ matrix.name }}"
+          fi
+
+          # Target release bundles (deb, rpm, AppImage, dmg, app)
+          BUNDLE_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
+          [ ! -d "$BUNDLE_DIR" ] && BUNDLE_DIR="src-tauri/target/release/bundle"
+
+          if [ -d "$BUNDLE_DIR" ]; then
+            # Debian packages
+            find "$BUNDLE_DIR/deb" -type f -name "*.deb" -exec cp {} staging/ \; 2>/dev/null || true
+            # RPM packages
+            find "$BUNDLE_DIR/rpm" -type f -name "*.rpm" -exec cp {} staging/ \; 2>/dev/null || true
+            # AppImage packages
+            find "$BUNDLE_DIR/appimage" -type f -name "*.AppImage" -exec cp {} staging/ \; 2>/dev/null || true
+            # macOS DMG packages
+            find "$BUNDLE_DIR/dmg" -type f -name "*.dmg" -exec cp {} staging/ \; 2>/dev/null || true
+            # macOS .app bundle zip
+            if [ -d "$BUNDLE_DIR/macos" ]; then
+              cd "$BUNDLE_DIR/macos"
+              zip -r "../../../../../staging/porto-${{ matrix.name }}.app.zip" *.app 2>/dev/null || true
+              cd - > /dev/null
+            fi
+          fi
+
+          ls -la staging/
+
+      # Stage artifacts for upload (Windows)
+      - name: Stage Release Artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p staging/
+          
+          # Standalone EXE binary
+          if [ -f "src-tauri/target/${{ matrix.target }}/release/porto.exe" ]; then
+            cp "src-tauri/target/${{ matrix.target }}/release/porto.exe" "staging/porto-windows-x86_64.exe"
+          elif [ -f "src-tauri/target/release/porto.exe" ]; then
+            cp "src-tauri/target/release/porto.exe" "staging/porto-windows-x86_64.exe"
+          fi
+
+          # Target installers (NSIS / MSI)
+          BUNDLE_DIR="src-tauri/target/${{ matrix.target }}/release/bundle"
+          [ ! -d "$BUNDLE_DIR" ] && BUNDLE_DIR="src-tauri/target/release/bundle"
+
+          if [ -d "$BUNDLE_DIR" ]; then
+            find "$BUNDLE_DIR/nsis" -type f -name "*.exe" -exec cp {} staging/ \; 2>/dev/null || true
+            find "$BUNDLE_DIR/msi" -type f -name "*.msi" -exec cp {} staging/ \; 2>/dev/null || true
+          fi
+
+          ls -la staging/
+
+      - name: Upload Platform Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: porto-macos-${{ matrix.arch }}
-          path: macos-artifacts/*
+          name: porto-${{ matrix.name }}
+          path: staging/*
           retention-days: 14
 
   # ----------------------------------------------------------------------------
-  # Job 4: Universal macOS Binary (Lipo universal2)
+  # Job 2: Create macOS Universal Binary (Lipo Fat Binary: arm64 + x86_64)
   # ----------------------------------------------------------------------------
-  build-macos-universal:
-    name: macOS (Universal2 - arm64 + x86_64)
-    needs: [build-macos]
+  macos-universal:
+    name: macOS (Universal2 Fat Binary)
+    needs: [build]
     runs-on: macos-latest
     steps:
-      - name: Download Apple Silicon Binary
+      - name: Download Apple Silicon Artifacts
         uses: actions/download-artifact@v4
         with:
           name: porto-macos-aarch64
-          path: temp-aarch64
+          path: staging-aarch64
 
-      - name: Download Intel Mac Binary
+      - name: Download Intel Mac Artifacts
         uses: actions/download-artifact@v4
         with:
           name: porto-macos-x86_64
-          path: temp-x86_64
+          path: staging-x86_64
 
-      - name: Create Universal Binary
+      - name: Assemble Universal2 Binary via Lipo
         run: |
-          mkdir -p macos-universal/
+          mkdir -p staging-universal/
           lipo -create \
-            temp-aarch64/porto-macos-aarch64 \
-            temp-x86_64/porto-macos-x86_64 \
-            -output macos-universal/porto-macos-universal
-          chmod +x macos-universal/porto-macos-universal
-          file macos-universal/porto-macos-universal
+            staging-aarch64/porto-macos-aarch64 \
+            staging-x86_64/porto-macos-x86_64 \
+            -output staging-universal/porto-macos-universal
+          chmod +x staging-universal/porto-macos-universal
+          file staging-universal/porto-macos-universal
 
       - name: Upload macOS Universal Binary
         uses: actions/upload-artifact@v4
         with:
           name: porto-macos-universal
-          path: macos-universal/porto-macos-universal
+          path: staging-universal/*
           retention-days: 14
 
   # ----------------------------------------------------------------------------
-  # Job 5: Publish GitHub Release (On Tags or Manual Release Trigger)
+  # Job 3: Consolidate & Publish GitHub Release (Tags / Manual Trigger)
   # ----------------------------------------------------------------------------
-  release:
-    name: Publish GitHub Release
-    needs: [build-docker-matrix, build-macos, build-macos-universal]
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+  publish-release:
+    name: Consolidate & Publish Release
+    needs: [build, macos-universal]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.draft_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Download All Release Artifacts
+      - name: Download All Platform Artifacts
         uses: actions/download-artifact@v4
         with:
           path: all-artifacts
 
-      - name: Consolidate Artifacts & Compute Checksums
+      - name: Consolidate Release Assets & Generate Checksums
         run: |
           mkdir -p release-assets/
           
-          # Linux and Windows binaries & bundles from docker builder
-          find all-artifacts/porto-docker-artifacts -type f -exec cp {} release-assets/ \;
+          find all-artifacts -type f -exec cp {} release-assets/ \;
           
-          # macOS Binaries & Bundles
-          find all-artifacts/porto-macos-aarch64 -type f -exec cp {} release-assets/ \; 2>/dev/null || true
-          find all-artifacts/porto-macos-x86_64 -type f -exec cp {} release-assets/ \; 2>/dev/null || true
-          find all-artifacts/porto-macos-universal -type f -exec cp {} release-assets/ \; 2>/dev/null || true
-          
-          # Re-compute global checksums
           cd release-assets/
           rm -f SHA256SUMS.txt
           sha256sum * > SHA256SUMS.txt
           cd ..
           
-          echo "Release assets ready:"
+          echo "=== Consolidated Release Assets ==="
           ls -la release-assets/
+          cat release-assets/SHA256SUMS.txt
 
-      - name: Create GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
