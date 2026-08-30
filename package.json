@@ -12,16 +12,15 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.2.0",
-    "@tauri-apps/plugin-shell": "^2.2.0",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "svelte": "^5.20.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
-    "@tauri-apps/cli": "^2.2.4",
+    "@tauri-apps/cli": "^2.11.4",
     "svelte-check": "^4.1.4",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
   }
 }
-
